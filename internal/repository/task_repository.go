@@ -15,7 +15,6 @@ type TaskRepository struct {
 }
 
 func NewTaskRepository(db *gorm.DB) *TaskRepository {
-	db.AutoMigrate(&Task{})
 	return &TaskRepository{DB: db}
 }
 
