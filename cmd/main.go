@@ -4,9 +4,9 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"APIhendler/internal/config"
-	"APIhendler/internal/handlers"
 	"APIhendler/internal/repository"
 	"APIhendler/internal/service"
+	"APIhendler/internal/web/tasks"
 )
 
 func main() {
@@ -17,14 +17,13 @@ func main() {
 
 	taskRepo := repository.NewTaskRepository(db)
 	taskService := service.NewTaskService(taskRepo)
-	taskHandler := handler.NewTaskHandler(taskService)
+
+	taskHandler := tasks.NewTaskHandlerAdapter(taskService)
 
 	e := echo.New()
 
-	e.POST("/tasks", taskHandler.CreateTask)
-	e.GET("/tasks", taskHandler.GetAllTasks)
-	e.PATCH("/tasks/:id", taskHandler.UpdateTask)
-	e.DELETE("/tasks/:id", taskHandler.DeleteTask)
+	strictHandler := tasks.NewStrictHandler(taskHandler, nil)
+	tasks.RegisterHandlers(e, strictHandler)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
