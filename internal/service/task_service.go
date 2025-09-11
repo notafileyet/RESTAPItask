@@ -5,10 +5,18 @@ import (
 )
 
 type TaskService struct {
-	Repo *repository.TaskRepository
+	Repo TaskRepositoryInterface
 }
 
-func NewTaskService(repo *repository.TaskRepository) *TaskService {
+type TaskRepositoryInterface interface {
+	Create(task *repository.Task) error
+	GetAll() ([]repository.Task, error)
+	GetByID(id uint) (*repository.Task, error)
+	Update(task *repository.Task) error
+	Delete(id uint) error
+}
+
+func NewTaskService(repo TaskRepositoryInterface) *TaskService {
 	return &TaskService{Repo: repo}
 }
 
