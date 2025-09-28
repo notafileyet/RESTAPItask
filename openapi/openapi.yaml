@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Task API
+  title: Task and User API
   version: 1.0.0
 paths:
   /tasks:
@@ -95,6 +95,98 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /users:
+    get:
+      summary: Get all users
+      tags:
+        - users
+      responses:
+        '200':
+          description: A list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create a new user
+      tags:
+        - users
+      requestBody:
+        description: The user to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: The created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{id}:
+    patch:
+      summary: Update a user by ID
+      tags:
+        - users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: User updates
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: The updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete a user by ID
+      tags:
+        - users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: User deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   schemas:
     Task:
@@ -110,6 +202,32 @@ components:
       required:
         - title
         - status
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - email
+        - password
 
   responses:
     BadRequest:

@@ -1,4 +1,4 @@
-package repository
+package tasksRepo
 
 import (
 	"gorm.io/gorm"

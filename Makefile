@@ -13,11 +13,26 @@ migrate-down:
 migrate-down-one:
 	$(MIGRATE) down 1
 
+gen-tasks:
+	oapi-codegen \
+		-config openapi/.openapi \
+		-include-tags tasks \
+		-package tasks \
+		openapi/openapi.yaml > ./internal/web/tasks/api.gen.go
+
+gen-users:
+	oapi-codegen \
+		-config openapi/.openapi \
+		-include-tags users \
+		-package users \
+		openapi/openapi.yaml > ./internal/web/users/api.gen.go
+
+gen:
+	make gen-tasks
+	make gen-users
+
 run:
 	go run cmd/main.go
 
-gen:
-	oapi-codegen -config openapi/.openapi -include-tags tasks -package tasks openapi/openapi.yaml > ./internal/web/tasks/api.gen.go
-
 lint:
-	golangci-lint run --color=auto
+	golangci-lint run --color=automak

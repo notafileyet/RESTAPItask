@@ -3,15 +3,15 @@ package tasks
 import (
 	"context"
 
-	"APIhendler/internal/repository"
-	"APIhendler/internal/service"
+	"APIhendler/internal/tasksRepo"
+	"APIhendler/internal/tasksService"
 )
 
 type TaskHandlerAdapter struct {
-	service *service.TaskService
+	service *tasksService.TaskService
 }
 
-func NewTaskHandlerAdapter(svc *service.TaskService) *TaskHandlerAdapter {
+func NewTaskHandlerAdapter(svc *tasksService.TaskService) *TaskHandlerAdapter {
 	return &TaskHandlerAdapter{service: svc}
 }
 
@@ -38,7 +38,7 @@ func (a *TaskHandlerAdapter) GetTasks(ctx context.Context, _ GetTasksRequestObje
 func (a *TaskHandlerAdapter) PostTasks(ctx context.Context, request PostTasksRequestObject) (PostTasksResponseObject, error) {
 	taskRequest := request.Body
 
-	task := &repository.Task{
+	task := &tasksRepo.Task{
 		Title:  taskRequest.Title,
 		Status: taskRequest.Status,
 	}
@@ -60,7 +60,7 @@ func (a *TaskHandlerAdapter) PostTasks(ctx context.Context, request PostTasksReq
 func (a *TaskHandlerAdapter) PatchTasksId(ctx context.Context, request PatchTasksIdRequestObject) (PatchTasksIdResponseObject, error) {
 	taskRequest := request.Body
 
-	task := &repository.Task{
+	task := &tasksRepo.Task{
 		ID:     uint(request.Id),
 		Title:  taskRequest.Title,
 		Status: taskRequest.Status,
