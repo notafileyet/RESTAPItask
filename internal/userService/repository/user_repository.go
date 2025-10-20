@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"APIhendler/internal/tasksRepo"
 	"APIhendler/internal/userService/orm"
 
 	"gorm.io/gorm"
@@ -12,14 +13,16 @@ type UserInterface interface {
 	GetByID(id uint) (*orm.User, error)
 	Update(user *orm.User) error
 	Delete(id uint) error
+	GetUserWithTasks(id uint) (*orm.User, error)
 }
 
 type UserRepository struct {
-	DB *gorm.DB
+	DB       *gorm.DB
+	TaskRepo tasksRepo.TaskRepositoryInterface
 }
 
-func NewUserRepository(db *gorm.DB) *UserRepository {
-	return &UserRepository{DB: db}
+func NewUserRepository(db *gorm.DB, taskRepo tasksRepo.TaskRepositoryInterface) *UserRepository {
+	return &UserRepository{DB: db, TaskRepo: taskRepo}
 }
 
 var _ UserInterface = &UserRepository{}
@@ -46,4 +49,10 @@ func (r *UserRepository) Update(user *orm.User) error {
 
 func (r *UserRepository) Delete(id uint) error {
 	return r.DB.Delete(&orm.User{}, id).Error
+}
+
+func (r *UserRepository) GetUserWithTasks(id uint) (*orm.User, error) {
+	var user orm.User
+	err := r.DB.Preload("Tasks").Where("id = ? AND deleted_at IS NULL", id).First(&user).Error
+	return &user, err
 }

@@ -4,12 +4,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type Task struct {
-	ID     uint   `json:"id" gorm:"primaryKey"`
-	Title  string `json:"title"`
-	Status string `json:"status"`
-}
-
 type TaskRepository struct {
 	DB *gorm.DB
 }
@@ -24,13 +18,13 @@ func (r *TaskRepository) Create(task *Task) error {
 
 func (r *TaskRepository) GetAll() ([]Task, error) {
 	var tasks []Task
-	err := r.DB.Find(&tasks).Error
+	err := r.DB.Preload("User").Find(&tasks).Error
 	return tasks, err
 }
 
 func (r *TaskRepository) GetByID(id uint) (*Task, error) {
 	var task Task
-	err := r.DB.First(&task, id).Error
+	err := r.DB.Preload("User").First(&task, id).Error
 	return &task, err
 }
 
@@ -40,4 +34,10 @@ func (r *TaskRepository) Update(task *Task) error {
 
 func (r *TaskRepository) Delete(id uint) error {
 	return r.DB.Delete(&Task{}, id).Error
+}
+
+func (r *TaskRepository) GetTasksByUserID(userID uint) ([]Task, error) {
+	var tasks []Task
+	err := r.DB.Where("user_id = ?", userID).Preload("User").Find(&tasks).Error
+	return tasks, err
 }

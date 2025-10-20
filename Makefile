@@ -35,4 +35,4 @@ run:
 	go run cmd/main.go
 
 lint:
-	golangci-lint run --color=automak
+	golangci-lint run --color=auto

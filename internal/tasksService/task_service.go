@@ -5,18 +5,10 @@ import (
 )
 
 type TaskService struct {
-	Repo TaskRepositoryInterface
+	Repo tasksRepo.TaskRepositoryInterface
 }
 
-type TaskRepositoryInterface interface {
-	Create(task *tasksRepo.Task) error
-	GetAll() ([]tasksRepo.Task, error)
-	GetByID(id uint) (*tasksRepo.Task, error)
-	Update(task *tasksRepo.Task) error
-	Delete(id uint) error
-}
-
-func NewTaskService(repo TaskRepositoryInterface) *TaskService {
+func NewTaskService(repo tasksRepo.TaskRepositoryInterface) *TaskService {
 	return &TaskService{Repo: repo}
 }
 
@@ -38,4 +30,8 @@ func (s *TaskService) UpdateTask(task *tasksRepo.Task) error {
 
 func (s *TaskService) DeleteTask(id uint) error {
 	return s.Repo.Delete(id)
+}
+
+func (s *TaskService) GetTasksByUserID(userID uint) ([]tasksRepo.Task, error) {
+	return s.Repo.GetTasksByUserID(userID)
 }

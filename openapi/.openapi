@@ -4,3 +4,12 @@ generate:
   models: true
   strict-server: true
   embedded-spec: true
+
+---
+
+package: users
+generate:
+  echo-server: true
+  models: true
+  strict-server: true
+  embedded-spec: true

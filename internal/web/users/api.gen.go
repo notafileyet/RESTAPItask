@@ -23,6 +23,17 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Task defines model for Task.
+type Task struct {
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	Id        *int64     `json:"id,omitempty"`
+	Status    string     `json:"status"`
+	Title     string     `json:"title"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	User      *User      `json:"user,omitempty"`
+	UserId    int64      `json:"user_id"`
+}
+
 // User defines model for User.
 type User struct {
 	CreatedAt *time.Time          `json:"created_at,omitempty"`
@@ -30,6 +41,7 @@ type User struct {
 	Email     openapi_types.Email `json:"email"`
 	Id        *int64              `json:"id,omitempty"`
 	Password  string              `json:"password"`
+	Tasks     *[]Task             `json:"tasks,omitempty"`
 	UpdatedAt *time.Time          `json:"updated_at,omitempty"`
 }
 
@@ -467,18 +479,19 @@ func (sh *strictHandler) PatchUsersId(ctx echo.Context, id int64) error {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xVQVPbPBD9K5r9vqOLQ5v24BuUtpMLw7RwYpiOsDaJwJaMtIbJZPTfO1o5IcGeBlom",
-	"5SavV9qnffuellDaurEGDXkoluDQN9Z45I9jqb7jXYue4ldpDaHhpWyaSpeStDX5jbcmxnw5x1rGVeNs",
-	"g450OgSdsy4uaNEgFODJaTODEDJweNdqhwqKyy7tKlul2esbLAlCzFPoS6ebWA6KiEqsYIUMJobQGVn9",
-	"QHeP7suq2ltBu4InEj6RAIYMTi19ta1RbwnsqSWRQMV/qSxXuvDo+vVLh5JQ/ZSMfGpdHVegJOE70jVC",
-	"9hRZLFjhjj2mrSp5XSEU5FocOANrqaut7SkykKrVVp429Gn8mKcN4QyZjkZ6/2Dddvo6OHBy26gXXv4p",
-	"LR3mdZFhhrSZWuZYU2wJnEt/K6RRInIijs4mkME9Op8YPDwYHYwiPNugkY2GAj5wKNahOdOWk/S3cRWy",
-	"bp0vtQpdoPXoOG2GfLNIOI/jREEB35AuOCHbtor3o9GLBlkT1rzxf4dTKOC//NGH8m7wcp66sO6KdE4u",
-	"hsb2SFTak7BTkcCHDD4mPEOnr3HnQ9bBg9/WtXSLdF0hq6o7NwOSMx+5S99XcW6sH2jTmfUbfWKvOrZq",
-	"8aIW7e5MvxPnc2SsgqxI6oTNoYt6Cj3mDvcCqzMLhhcZGj+HoY0X6PVI/cxIhBQGHxKcPrFrJayk0RlX",
-	"n+oTjjPZE8Uyc7JGYhFdLkEb9hGaR2OTNbuO6pGSbTR4p1mFqx6F44Rws+dsD53bCt+WJXo/batq8YfN",
-	"H6civ9+yftRej63UXyHTXF8vxORkWIiSyvmAEmN4/+zsT/LMc3qM/DPEPtqPB6XH8W/E/q/m7YKh75q3",
-	"EMKvAAAA//8PMVaWOwsAAA==",
+	"H4sIAAAAAAAC/8xWTW/bOBD9K8TsHrWRs3V78C1p2sKXIGjjUxAEjDi2mUikQo4SGIb+e8GhLNuRUDsf",
+	"cHOjqNHwzXvzhlpCZovSGjTkYbQEh760xiM/nEr1Ex8q9BSeMmsIDS9lWeY6k6StSe+8NWHPZ3MsZFiV",
+	"zpboSMck6Jx1YUGLEmEEnpw2M6jrBBw+VNqhgtFVE3adrMLs7R1mBHWIU+gzp8twHIwCKrGCVScwNoTO",
+	"yPwXukd031anfRS0K3gi4hMRYJ3AuaXvtjLqI4E9tyQiqPAuHssnXUp/3z0/cygJ1Y1k5FPrirACJQn/",
+	"I10gJM+RJaDVVqw29GW4jtOGcIbMjydJle+pLgHSlGPvm6pUL0ZUeWQS/3U4hRH8k64dkTYUpBMfQYXY",
+	"mz1LeKZCBN3Wtc7VFSaBSYPp7XwrzHHHN6bKc3kbGCVXYU8OLKTOtz6PO2+Rt5TeP1m3Hd5u9mQm6e+Z",
+	"BU1Y+F2CccPWbRrpnFy8rkGem6mpvIXa7yttppY7NLYqG0hIo0RQVpxcjCGBR3Q++u74aHA0CPBsiUaW",
+	"GkbwibfCOTTnatMVAXXSrNPQQT5dNo1Ub71brjc4LKSYIVcdWooHzFjBCH4gTTgg2R7+/w8GLxpNe8my",
+	"8tG2LN1BdCJy7UnYqYjg6wQ+Rzx92Vvcad9lwKOsKgrpFrFcIfO8yRvaauaDrvH5OnSm9T00XVi/wRPf",
+	"PqdWLV5E0W5mukxczpGxCrIi+h82GzI4tu4od3wQWM04YnhBoeE+Cm38U7yfqF8ZiZDC4FOE0xW2dcLK",
+	"Gs1o7Ep9xvss9lixBZ0skNhEV0vQhicVzcPolAXPNdURJdkgePdVcd2RcBgRbnLOo6OZ58JXWYbeT6s8",
+	"X7yS/GE85M+ftL8p76dW5FfI2Ne3CzE+6zeipGze48SwfXh1Dmd51jleVH4Psw8OM4PixfkWs/+tfpsw",
+	"9F39Vtf17wAAAP//54KLnA0NAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
