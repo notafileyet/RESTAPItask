@@ -21,8 +21,8 @@ type UserRepository struct {
 	TaskRepo tasksRepo.TaskRepositoryInterface
 }
 
-func NewUserRepository(db *gorm.DB, taskRepo tasksRepo.TaskRepositoryInterface) *UserRepository {
-	return &UserRepository{DB: db, TaskRepo: taskRepo}
+func NewUserRepository(db *gorm.DB) *UserRepository {
+	return &UserRepository{DB: db}
 }
 
 var _ UserInterface = &UserRepository{}

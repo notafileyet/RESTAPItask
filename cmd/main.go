@@ -7,11 +7,10 @@ import (
 	"APIhendler/internal/handlers"
 	"APIhendler/internal/tasksRepo"
 	"APIhendler/internal/tasksService"
+	"APIhendler/internal/userService/repository"
+	"APIhendler/internal/userService/service"
 	"APIhendler/internal/web/tasks"
 	"APIhendler/internal/web/users"
-
-	userServiceRepo "APIhendler/internal/userService/repository"
-	userServiceService "APIhendler/internal/userService/service"
 )
 
 func main() {
@@ -20,12 +19,13 @@ func main() {
 		panic(err)
 	}
 
+	usersRepo := repository.NewUserRepository(db)
 	tasksRepo := tasksRepo.NewTaskRepository(db)
-	tasksService := tasksService.NewTaskService(tasksRepo)
-	tasksHandler := handlers.NewTaskHandlers(tasksService)
 
-	usersRepo := userServiceRepo.NewUserRepository(db, tasksRepo)
-	usersService := userServiceService.NewUserService(usersRepo, tasksRepo)
+	usersService := service.NewUserService(usersRepo, tasksRepo)
+	tasksService := tasksService.NewTaskService(tasksRepo, usersRepo)
+
+	tasksHandler := handlers.NewTaskHandlers(tasksService)
 	usersHandler := handlers.NewUserHandlers(usersService)
 
 	e := echo.New()

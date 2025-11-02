@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"context"
-
 	"APIhendler/internal/tasksRepo"
 	"APIhendler/internal/tasksService"
 	"APIhendler/internal/web/tasks"
+	"context"
 )
 
 type TaskHandlers struct {
@@ -25,7 +24,8 @@ func (h *TaskHandlers) PostTasks(ctx context.Context, request tasks.PostTasksReq
 		UserID: uint(taskRequest.UserId),
 	}
 
-	if err := h.TaskService.CreateTask(task); err != nil {
+	err := h.TaskService.CreateTask(task)
+	if err != nil {
 		return nil, err
 	}
 
@@ -51,31 +51,6 @@ func (h *TaskHandlers) GetTasks(ctx context.Context, _ tasks.GetTasksRequestObje
 	}
 
 	response := tasks.GetTasks200JSONResponse{}
-	for _, t := range tasksList {
-		id := int64(t.ID)
-		userId := int64(t.UserID)
-
-		task := tasks.Task{
-			Id:        &id,
-			Title:     t.Title,
-			Status:    t.Status,
-			UserId:    userId,
-			CreatedAt: &t.CreatedAt,
-			UpdatedAt: &t.UpdatedAt,
-		}
-		response = append(response, task)
-	}
-
-	return response, nil
-}
-
-func (h *TaskHandlers) GetTasksUsersUserId(ctx context.Context, request tasks.GetTasksUsersUserIdRequestObject) (tasks.GetTasksUsersUserIdResponseObject, error) {
-	tasksList, err := h.TaskService.GetTasksByUserID(uint(request.UserId))
-	if err != nil {
-		return nil, err
-	}
-
-	response := tasks.GetTasksUsersUserId200JSONResponse{}
 	for _, t := range tasksList {
 		id := int64(t.ID)
 		userId := int64(t.UserID)

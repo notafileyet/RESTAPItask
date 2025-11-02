@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"context"
-
 	"APIhendler/internal/userService/orm"
 	"APIhendler/internal/userService/service"
 	"APIhendler/internal/web/users"
+	"context"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -36,6 +35,30 @@ func (h *UserHandlers) GetUsers(ctx context.Context, _ users.GetUsersRequestObje
 			DeletedAt: u.DeletedAt,
 		}
 		response = append(response, user)
+	}
+
+	return response, nil
+}
+
+func (h *UserHandlers) GetUsersIdTasks(ctx context.Context, request users.GetUsersIdTasksRequestObject) (users.GetUsersIdTasksResponseObject, error) {
+	tasksList, err := h.UserService.GetTasksForUser(uint(request.Id))
+	if err != nil {
+		return nil, err
+	}
+
+	response := users.GetUsersIdTasks200JSONResponse{}
+	for _, t := range tasksList {
+		id := int64(t.ID)
+		userId := int64(t.UserID)
+		task := users.Task{
+			Id:        &id,
+			Title:     t.Title,
+			Status:    t.Status,
+			UserId:    userId,
+			CreatedAt: &t.CreatedAt,
+			UpdatedAt: &t.UpdatedAt,
+		}
+		response = append(response, task)
 	}
 
 	return response, nil

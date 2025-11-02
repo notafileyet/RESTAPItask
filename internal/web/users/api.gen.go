@@ -23,6 +23,12 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Error defines model for Error.
+type Error struct {
+	Error   string  `json:"error"`
+	Message *string `json:"message,omitempty"`
+}
+
 // Task defines model for Task.
 type Task struct {
 	CreatedAt *time.Time `json:"created_at,omitempty"`
@@ -46,19 +52,13 @@ type User struct {
 }
 
 // BadRequest defines model for BadRequest.
-type BadRequest struct {
-	Error string `json:"error"`
-}
+type BadRequest = Error
 
 // InternalServerError defines model for InternalServerError.
-type InternalServerError struct {
-	Error string `json:"error"`
-}
+type InternalServerError = Error
 
 // NotFound defines model for NotFound.
-type NotFound struct {
-	Error string `json:"error"`
-}
+type NotFound = Error
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
 type PostUsersJSONRequestBody = User
@@ -80,6 +80,9 @@ type ServerInterface interface {
 	// Update a user by ID
 	// (PATCH /users/{id})
 	PatchUsersId(ctx echo.Context, id int64) error
+	// Get all tasks for a specific user
+	// (GET /users/{id}/tasks)
+	GetUsersIdTasks(ctx echo.Context, id int64) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -137,6 +140,22 @@ func (w *ServerInterfaceWrapper) PatchUsersId(ctx echo.Context) error {
 	return err
 }
 
+// GetUsersIdTasks converts echo context to params.
+func (w *ServerInterfaceWrapper) GetUsersIdTasks(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetUsersIdTasks(ctx, id)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -169,20 +188,15 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/users", wrapper.PostUsers)
 	router.DELETE(baseURL+"/users/:id", wrapper.DeleteUsersId)
 	router.PATCH(baseURL+"/users/:id", wrapper.PatchUsersId)
+	router.GET(baseURL+"/users/:id/tasks", wrapper.GetUsersIdTasks)
 
 }
 
-type BadRequestJSONResponse struct {
-	Error string `json:"error"`
-}
+type BadRequestJSONResponse Error
 
-type InternalServerErrorJSONResponse struct {
-	Error string `json:"error"`
-}
+type InternalServerErrorJSONResponse Error
 
-type NotFoundJSONResponse struct {
-	Error string `json:"error"`
-}
+type NotFoundJSONResponse Error
 
 type GetUsersRequestObject struct {
 }
@@ -340,6 +354,52 @@ func (response PatchUsersId500JSONResponse) VisitPatchUsersIdResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetUsersIdTasksRequestObject struct {
+	Id int64 `json:"id"`
+}
+
+type GetUsersIdTasksResponseObject interface {
+	VisitGetUsersIdTasksResponse(w http.ResponseWriter) error
+}
+
+type GetUsersIdTasks200JSONResponse []Task
+
+func (response GetUsersIdTasks200JSONResponse) VisitGetUsersIdTasksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetUsersIdTasks400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetUsersIdTasks400JSONResponse) VisitGetUsersIdTasksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetUsersIdTasks404JSONResponse Error
+
+func (response GetUsersIdTasks404JSONResponse) VisitGetUsersIdTasksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetUsersIdTasks500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetUsersIdTasks500JSONResponse) VisitGetUsersIdTasksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get all users
@@ -354,6 +414,9 @@ type StrictServerInterface interface {
 	// Update a user by ID
 	// (PATCH /users/{id})
 	PatchUsersId(ctx context.Context, request PatchUsersIdRequestObject) (PatchUsersIdResponseObject, error)
+	// Get all tasks for a specific user
+	// (GET /users/{id}/tasks)
+	GetUsersIdTasks(ctx context.Context, request GetUsersIdTasksRequestObject) (GetUsersIdTasksResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -476,22 +539,48 @@ func (sh *strictHandler) PatchUsersId(ctx echo.Context, id int64) error {
 	return nil
 }
 
+// GetUsersIdTasks operation middleware
+func (sh *strictHandler) GetUsersIdTasks(ctx echo.Context, id int64) error {
+	var request GetUsersIdTasksRequestObject
+
+	request.Id = id
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUsersIdTasks(ctx.Request().Context(), request.(GetUsersIdTasksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetUsersIdTasks")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetUsersIdTasksResponseObject); ok {
+		return validResponse.VisitGetUsersIdTasksResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xWTW/bOBD9K8TsHrWRs3V78C1p2sKXIGjjUxAEjDi2mUikQo4SGIb+e8GhLNuRUDsf",
-	"cHOjqNHwzXvzhlpCZovSGjTkYbQEh760xiM/nEr1Ex8q9BSeMmsIDS9lWeY6k6StSe+8NWHPZ3MsZFiV",
-	"zpboSMck6Jx1YUGLEmEEnpw2M6jrBBw+VNqhgtFVE3adrMLs7R1mBHWIU+gzp8twHIwCKrGCVScwNoTO",
-	"yPwXukd031anfRS0K3gi4hMRYJ3AuaXvtjLqI4E9tyQiqPAuHssnXUp/3z0/cygJ1Y1k5FPrirACJQn/",
-	"I10gJM+RJaDVVqw29GW4jtOGcIbMjydJle+pLgHSlGPvm6pUL0ZUeWQS/3U4hRH8k64dkTYUpBMfQYXY",
-	"mz1LeKZCBN3Wtc7VFSaBSYPp7XwrzHHHN6bKc3kbGCVXYU8OLKTOtz6PO2+Rt5TeP1m3Hd5u9mQm6e+Z",
-	"BU1Y+F2CccPWbRrpnFy8rkGem6mpvIXa7yttppY7NLYqG0hIo0RQVpxcjCGBR3Q++u74aHA0CPBsiUaW",
-	"GkbwibfCOTTnatMVAXXSrNPQQT5dNo1Ub71brjc4LKSYIVcdWooHzFjBCH4gTTgg2R7+/w8GLxpNe8my",
-	"8tG2LN1BdCJy7UnYqYjg6wQ+Rzx92Vvcad9lwKOsKgrpFrFcIfO8yRvaauaDrvH5OnSm9T00XVi/wRPf",
-	"PqdWLV5E0W5mukxczpGxCrIi+h82GzI4tu4od3wQWM04YnhBoeE+Cm38U7yfqF8ZiZDC4FOE0xW2dcLK",
-	"Gs1o7Ep9xvss9lixBZ0skNhEV0vQhicVzcPolAXPNdURJdkgePdVcd2RcBgRbnLOo6OZ58JXWYbeT6s8",
-	"X7yS/GE85M+ftL8p76dW5FfI2Ne3CzE+6zeipGze48SwfXh1Dmd51jleVH4Psw8OM4PixfkWs/+tfpsw",
-	"9F39Vtf17wAAAP//54KLnA0NAAA=",
+	"H4sIAAAAAAAC/8RXTVPjOBD9KyrtHr0k7Gbn4BsMM1O5UNQMOVEUJax2IrAlI7WhUin/9ym1bCfBHhLI",
+	"BzdHbrWe3ut+7Sx4YvLCaNDoeLzgFlxhtAP6cS7kT3gqwaH/lRiNoOlRFEWmEoHK6MGDM9qvuWQGufBP",
+	"f1tIecz/GixTD8JbN/hmrbG8qqqIS3CJVYVPwmN/FmsOqyI+1ghWi+wX2GewYdfBMTSHsnAqqwMjfmnw",
+	"uym1PDyES4MsHOXf1eE+W0tBYU0BFlWQCJplnBfAY+7QKj31mHNwTkyh510VcQtPpbIgeXxTp7iNmjBz",
+	"/wAJiXAt3GP3yMSCQJB3gjhIjc39E5cC4R9UOfCoC0bJtVil8ctoGac0whSIaYcCS9d7IVSYQe+bspDv",
+	"RlQ6sJtUmrgAysfebXmFV+QG0O29lrn6+J7UmHbnW0IGG/boMsvEvWcUbQk9OSAXKlvbHlZ2kbcQzr0Y",
+	"ux7eLvZkRuEeiQWFkLtNglHBVm0aYa2Yf6xAXvdIffMWalc+v0Xp1FCFhlKlBmJCS+aVZWdXYx7xZ7Au",
+	"9PrpyfBk6OGZArQoFI/5f7Tkz8EZ3XbQEFBF9fNgoWRVL/hiorAp0M182ZAdjSWP+Q/ACQVE67b+73D4",
+	"LiPbivqmV9ap7xrcGcuUQ2ZSFsBXEf8/4OnL3uIe9A0Essgyz4Wdh+sykWV1Xl86U+e1C79vffUZ10PT",
+	"lXErPNEEOjdyvjevD8x0mbieAWFlaFjocb5adL4rq45yp0eBVVsOwfMKjbZRaOVrYX+ifiUkTDANLwFO",
+	"V9i2E5rWqO2vK/UFrZPYY0ltZkUOSE10s+BKkxvhzNujyMm7ZEeUaIXgzePgtiPhKCBc5ZzsofZs5sok",
+	"AefSMsvmHyR/FA55e0v7UbM/tQK/TIS6vp+z8UV/IwpMZj2d6JePr87xWp50DsPIbdHsw+N4UBiOuzT7",
+	"Z9XbhKBvqrd1f2gn6ttDcyyvKe6TTOIAE7r/4+itCU1MsdRYhvWs2q0+DvvXiZpLG2Tpnqus+bBY0iGY",
+	"KyBRqUr+OJOq6ncAAAD//95BGl1bDwAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

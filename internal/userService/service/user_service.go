@@ -4,6 +4,9 @@ import (
 	"APIhendler/internal/tasksRepo"
 	"APIhendler/internal/userService/orm"
 	"APIhendler/internal/userService/repository"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 type UserService struct {
@@ -36,6 +39,11 @@ func (s *UserService) DeleteUser(id uint) error {
 }
 
 func (s *UserService) GetTasksForUser(userID uint) ([]tasksRepo.Task, error) {
+	_, err := s.Repo.GetByID(userID)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusNotFound, "User not found")
+	}
+
 	return s.TaskRepo.GetTasksByUserID(userID)
 }
 

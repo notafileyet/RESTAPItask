@@ -23,6 +23,12 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Error defines model for Error.
+type Error struct {
+	Error   string  `json:"error"`
+	Message *string `json:"message,omitempty"`
+}
+
 // Task defines model for Task.
 type Task struct {
 	CreatedAt *time.Time `json:"created_at,omitempty"`
@@ -46,19 +52,13 @@ type User struct {
 }
 
 // BadRequest defines model for BadRequest.
-type BadRequest struct {
-	Error string `json:"error"`
-}
+type BadRequest = Error
 
 // InternalServerError defines model for InternalServerError.
-type InternalServerError struct {
-	Error string `json:"error"`
-}
+type InternalServerError = Error
 
 // NotFound defines model for NotFound.
-type NotFound struct {
-	Error string `json:"error"`
-}
+type NotFound = Error
 
 // PostTasksJSONRequestBody defines body for PostTasks for application/json ContentType.
 type PostTasksJSONRequestBody = Task
@@ -74,9 +74,6 @@ type ServerInterface interface {
 	// Create a new task
 	// (POST /tasks)
 	PostTasks(ctx echo.Context) error
-	// Get all tasks for a specific user
-	// (GET /tasks/users/{user_id})
-	GetTasksUsersUserId(ctx echo.Context, userId int64) error
 	// Delete a task
 	// (DELETE /tasks/{id})
 	DeleteTasksId(ctx echo.Context, id int64) error
@@ -105,22 +102,6 @@ func (w *ServerInterfaceWrapper) PostTasks(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostTasks(ctx)
-	return err
-}
-
-// GetTasksUsersUserId converts echo context to params.
-func (w *ServerInterfaceWrapper) GetTasksUsersUserId(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "user_id" -------------
-	var userId int64
-
-	err = runtime.BindStyledParameterWithOptions("simple", "user_id", ctx.Param("user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter user_id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetTasksUsersUserId(ctx, userId)
 	return err
 }
 
@@ -186,23 +167,16 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 
 	router.GET(baseURL+"/tasks", wrapper.GetTasks)
 	router.POST(baseURL+"/tasks", wrapper.PostTasks)
-	router.GET(baseURL+"/tasks/users/:user_id", wrapper.GetTasksUsersUserId)
 	router.DELETE(baseURL+"/tasks/:id", wrapper.DeleteTasksId)
 	router.PATCH(baseURL+"/tasks/:id", wrapper.PatchTasksId)
 
 }
 
-type BadRequestJSONResponse struct {
-	Error string `json:"error"`
-}
+type BadRequestJSONResponse Error
 
-type InternalServerErrorJSONResponse struct {
-	Error string `json:"error"`
-}
+type InternalServerErrorJSONResponse Error
 
-type NotFoundJSONResponse struct {
-	Error string `json:"error"`
-}
+type NotFoundJSONResponse Error
 
 type GetTasksRequestObject struct {
 }
@@ -262,52 +236,6 @@ type PostTasks500JSONResponse struct {
 }
 
 func (response PostTasks500JSONResponse) VisitPostTasksResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetTasksUsersUserIdRequestObject struct {
-	UserId int64 `json:"user_id"`
-}
-
-type GetTasksUsersUserIdResponseObject interface {
-	VisitGetTasksUsersUserIdResponse(w http.ResponseWriter) error
-}
-
-type GetTasksUsersUserId200JSONResponse []Task
-
-func (response GetTasksUsersUserId200JSONResponse) VisitGetTasksUsersUserIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetTasksUsersUserId400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response GetTasksUsersUserId400JSONResponse) VisitGetTasksUsersUserIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetTasksUsersUserId404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response GetTasksUsersUserId404JSONResponse) VisitGetTasksUsersUserIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetTasksUsersUserId500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
-
-func (response GetTasksUsersUserId500JSONResponse) VisitGetTasksUsersUserIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -414,9 +342,6 @@ type StrictServerInterface interface {
 	// Create a new task
 	// (POST /tasks)
 	PostTasks(ctx context.Context, request PostTasksRequestObject) (PostTasksResponseObject, error)
-	// Get all tasks for a specific user
-	// (GET /tasks/users/{user_id})
-	GetTasksUsersUserId(ctx context.Context, request GetTasksUsersUserIdRequestObject) (GetTasksUsersUserIdResponseObject, error)
 	// Delete a task
 	// (DELETE /tasks/{id})
 	DeleteTasksId(ctx context.Context, request DeleteTasksIdRequestObject) (DeleteTasksIdResponseObject, error)
@@ -489,31 +414,6 @@ func (sh *strictHandler) PostTasks(ctx echo.Context) error {
 	return nil
 }
 
-// GetTasksUsersUserId operation middleware
-func (sh *strictHandler) GetTasksUsersUserId(ctx echo.Context, userId int64) error {
-	var request GetTasksUsersUserIdRequestObject
-
-	request.UserId = userId
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetTasksUsersUserId(ctx.Request().Context(), request.(GetTasksUsersUserIdRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetTasksUsersUserId")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(GetTasksUsersUserIdResponseObject); ok {
-		return validResponse.VisitGetTasksUsersUserIdResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
 // DeleteTasksId operation middleware
 func (sh *strictHandler) DeleteTasksId(ctx echo.Context, id int64) error {
 	var request DeleteTasksIdRequestObject
@@ -573,19 +473,19 @@ func (sh *strictHandler) PatchTasksId(ctx echo.Context, id int64) error {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"W7Rpmt8BAAD//wTHL7zyDAAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
